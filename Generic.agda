@@ -1,21 +1,26 @@
 module Generic where
 
 open import Agda.Primitive
-open import Reflection
-open import Data.Fin hiding (_+_)
-open import Data.Nat
+open import Reflection hiding (_≟_)
+open import Data.Fin hiding (_+_ ; pred)
+open import Data.Nat hiding (_≟_)
 open import Data.List
-open import Data.String
-open import Data.Product using (_,_)
-open import Data.Bool
+open import Data.String hiding (_≟_)
+open import Data.Product using (_,_ ; _×_)
+open import Data.Bool hiding (_≟_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong)
 open import Function using (_∘_ ; _$_ ; _∋_)
+open import Relation.Nullary
+open import Relation.Binary
 
 -------------------------
 -- Term construction helpers.
 
 a : {A : Set} -> (x : A) -> Arg A
 a x = arg (arg-info visible relevant) x
+
+a1 : {A : Set} -> (x : A) -> Arg A
+a1 x = arg (arg-info hidden relevant) x
 
 t0 : Term -> Type
 t0 t = el (lit 0) t
@@ -99,6 +104,22 @@ proofIso n n1 n2 {s} = fun-def (t0 fun_type) clauses
     clauses = map (\c -> clause [ a $ con c [] ] (con (quote refl) [])) (cons n) 
 
 -------------------------
+-- Deriving eq.
+
+genDec : (n : Name) -> {_ : T (supported n)} -> FunctionDef
+genDec n = fun-def (t0 fun_type) clauses
+  where
+    combs = concatMap (\l -> map (\m -> (l , m)) $ cons n) $ cons n
+    fun_type = def (quote Decidable) $ (a1 unknown) ∷ (a1 unknown) ∷ (a1 unknown) ∷ (a1 $ def n []) ∷ (a1 unknown) ∷ (a $ def (quote _≡_) []) ∷ []
+    
+    clause` : Name × Name -> Clause
+    clause` (c₁ , c₂) with showName c₁ == showName c₂
+    clause` (c₁ , c₂) | true = clause ( (a $ con c₁ []) ∷ (a $ con c₂ []) ∷ [] ) (con (quote yes) [ a (con (quote refl) []) ])
+    clause` (c₁ , c₂) | false = clause ( (a $ con c₁ []) ∷ (a $ con c₂ []) ∷ [] )  (con (quote no) [ a (pat-lam [ absurd-clause [ a absurd ] ] []) ])
+    
+    clauses = map clause` combs
+
+-------------------------
 -- Generic from/to example.
 
 data Test : Set where
@@ -109,6 +130,20 @@ data Test : Set where
 unquoteDecl fromTest = genFrom (quote Test)
 unquoteDecl toTest = genTo (quote Test)
 unquoteDecl proofTest = proofIso (quote Test) (quote fromTest) (quote toTest)
+unquoteDecl decidableTest = genDec (quote Test)
+
+{-
+_≟_ : Decidable {_} {_} {_} {Test} {_} (_≡_)
+One ≟ One = yes refl
+One ≟ Two = no (λ ())
+One ≟ Three = no (λ ())
+Two ≟ One = no (λ ())
+Two ≟ Two = yes refl
+Two ≟ Three = no (λ ())
+Three ≟ One = no (λ ())
+Three ≟ Two = no (λ ())
+Three ≟ Three = yes refl
+-}
 
 ----------------
 -- meeting 26/05/15
