@@ -101,7 +101,7 @@ proofIso n n1 n2 {s} = fun-def (t0 fun_type) clauses
     proof_type = def (quote _≡_) $ (a $ def n2 [ a $ def n1 [ a $ var 0 [] ] ]) ∷ (a $ var 0 []) ∷ []
     fun_type = pi (a ∘ t0 $ def n []) (abs "_" (t0 proof_type))
    
-    clauses = map (\c -> clause [ a $ con c [] ] (con (quote refl) [])) (cons n) 
+    clauses = map (λ c -> clause [ a $ con c [] ] (con (quote refl) [])) (cons n) 
 
 -------------------------
 -- Deriving eq.
@@ -109,7 +109,7 @@ proofIso n n1 n2 {s} = fun-def (t0 fun_type) clauses
 genDec : (n : Name) -> {_ : T (supported n)} -> FunctionDef
 genDec n = fun-def (t0 fun_type) clauses
   where
-    combs = concatMap (\l -> map (\m -> (l , m)) $ cons n) $ cons n
+    combs = concatMap (λ l -> map (λ m -> (l , m)) $ cons n) $ cons n
     fun_type = def (quote Decidable) $ (a1 unknown) ∷ (a1 unknown) ∷ (a1 unknown) ∷ (a1 $ def n []) ∷ (a1 unknown) ∷ (a $ def (quote _≡_) []) ∷ []
     
     clause` : Name × Name -> Clause
