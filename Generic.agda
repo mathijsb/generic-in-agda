@@ -1,17 +1,21 @@
 module Generic where
 
 open import Agda.Primitive
-open import Reflection hiding (_≟_)
-open import Data.Fin hiding (_+_ ; pred)
-open import Data.Nat hiding (_≟_)
+open import Reflection
+open import Data.Fin hiding (_+_)
+open import Data.Fin.Properties using (eq?)
+open import Data.Nat hiding (eq?)
 open import Data.List
-open import Data.String hiding (_≟_)
+open import Data.String hiding (setoid)
 open import Data.Product using (_,_ ; _×_)
-open import Data.Bool hiding (_≟_)
-open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong)
-open import Function using (_∘_ ; _$_ ; _∋_)
-open import Relation.Nullary
+open import Data.Bool
 open import Relation.Binary
+open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; setoid)
+import Relation.Binary.Indexed as I
+open import Function using (_∘_ ; _$_ ; _∋_)
+open import Function.Equality using (_⟶_ ;  _⟨$⟩_ )
+open import Function.Injection using (_↣_ ; Injective ; Injection)
+open import Relation.Nullary
 
 -------------------------
 -- Term construction helpers.
@@ -104,7 +108,7 @@ proofIso n n1 n2 {s} = fun-def (t0 fun_type) clauses
     clauses = map (λ c -> clause [ a $ con c [] ] (con (quote refl) [])) (cons n) 
 
 -------------------------
--- Deriving eq.
+-- Decidable equality (ugly)
 
 genDec : (n : Name) -> {_ : T (supported n)} -> FunctionDef
 genDec n = fun-def (t0 fun_type) clauses
@@ -120,6 +124,40 @@ genDec n = fun-def (t0 fun_type) clauses
     clauses = map clause` combs
 
 -------------------------
+-- Injectivity
+
+constr-Π : ∀ {f₁ f₂ t₁ t₂} → {f : Setoid f₁ f₂} → {t : Setoid t₁ t₂}
+  -> (app : ((Setoid.Carrier f) -> I.Setoid.Carrier (Setoid.indexedSetoid t) (Setoid.Carrier f)))
+  -> (Setoid._≈_ f =[ app ]⇒ Setoid._≈_ t)
+  -> (f ⟶ t)
+constr-Π app c = record { _⟨$⟩_ = app; cong = c }
+
+constr-Injection : ∀ {s₁ s₂ s₃ s₄} {S₁ : Setoid s₁ s₂} {S₂ : Setoid s₃ s₄}
+  -> (t : (S₁ ⟶ S₂))
+  -> (Injective t)
+  -> Injection S₁ S₂
+constr-Injection t i = record { to = t ; injective = i }
+
+genInj : (n : Name) -> (n1 : Name) -> {_ : T (supported n)} -> FunctionDef
+genInj n n1 = fun-def (t0 fun_type) [ clause [] body ]
+  where
+
+    setoid_from = def (quote setoid) [ a $ def n [] ]
+    setoid_to = def (quote setoid) [ a $ def (quote Fin) [ a (lit (nat ∘ length ∘ cons $ n)) ] ]
+    
+    fun_type = def (quote Injection) $ a setoid_from ∷ a setoid_to ∷ []
+    
+    clause` : Name × Name -> Clause
+    clause` (c₁ , c₂) with showName c₁ == showName c₂
+    clause` (c₁ , c₂) | true = clause ( (a1 $ con c₁ []) ∷ (a1 $ con c₂ []) ∷ (a $ var "_") ∷ [] ) (con (quote refl) [])
+    clause` (c₁ , c₂) | false = absurd-clause ( (a1 $ con c₁ []) ∷ (a1 $ con c₂ []) ∷ (a $ absurd) ∷ [] )
+
+    combs = concatMap (λ l -> map (λ m -> (l , m)) $ cons n) $ cons n
+    proof = pat-lam (map clause` combs) []
+        
+    body = def (quote constr-Injection) $ a (def (quote constr-Π) $ (a $ def n1 []) ∷ a proof ∷ []) ∷ a proof ∷ []
+
+-------------------------
 -- Generic from/to example.
 
 data Test : Set where
@@ -131,19 +169,10 @@ unquoteDecl fromTest = genFrom (quote Test)
 unquoteDecl toTest = genTo (quote Test)
 unquoteDecl proofTest = proofIso (quote Test) (quote fromTest) (quote toTest)
 unquoteDecl decidableTest = genDec (quote Test)
+unquoteDecl injTest = genInj (quote Test) (quote fromTest)
 
-{-
-_≟_ : Decidable {_} {_} {_} {Test} {_} (_≡_)
-One ≟ One = yes refl
-One ≟ Two = no (λ ())
-One ≟ Three = no (λ ())
-Two ≟ One = no (λ ())
-Two ≟ Two = yes refl
-Two ≟ Three = no (λ ())
-Three ≟ One = no (λ ())
-Three ≟ Two = no (λ ())
-Three ≟ Three = yes refl
--}
+eqTest : Decidable {A = Test} _≡_
+eqTest = eq? injTest
 
 ----------------
 -- meeting 26/05/15
@@ -192,4 +221,11 @@ Three ≟ Three = yes refl
 -- macro
 -- proberen met type-annotaties
 -- agda code bekijken naar reflectiemechaniscme
- 
+
+
+----------------
+-- meeting 16/06/15
+
+-- 
+-- bewijzen serializeren / terugserializeren
+-- record syntax gebruiken
