@@ -2,9 +2,9 @@ module Generic where
 
 open import Agda.Primitive
 open import Reflection
-open import Data.Fin hiding (_+_)
-open import Data.Fin.Properties using (eq?)
-open import Data.Nat hiding (eq?)
+open import Data.Fin
+open import Data.Fin.Properties using (eq? ; _≟_)
+open import Data.Nat hiding (eq? ;  _+_)
 open import Data.List
 open import Data.String hiding (setoid)
 open import Data.Product using (_,_ ; _×_)
@@ -16,6 +16,7 @@ open import Function using (_∘_ ; _$_ ; _∋_)
 open import Function.Equality using (_⟶_ ;  _⟨$⟩_ )
 open import Function.Injection using (_↣_ ; Injective ; Injection)
 open import Relation.Nullary
+open import Relation.Nullary.Negation
 
 -------------------------
 -- Term construction helpers.
@@ -138,6 +139,29 @@ constr-Injection : ∀ {s₁ s₂ s₃ s₄} {S₁ : Setoid s₁ s₂} {S₂ : S
   -> Injection S₁ S₂
 constr-Injection t i = record { to = t ; injective = i }
 
+genInj` : (n : Name) -> (n1 : Name) -> {_ : T (supported n)} -> Term
+genInj` n n1 = fun_type ∋-t body
+  where
+
+    setoid_from = def (quote setoid) [ a $ def n [] ]
+    setoid_to = def (quote setoid) [ a $ def (quote Fin) [ a (lit (nat ∘ length ∘ cons $ n)) ] ]
+    
+    fun_type = def (quote Injection) $ a setoid_from ∷ a setoid_to ∷ []
+    
+    clause` : Name × Name -> Clause
+    clause` (c₁ , c₂) with showName c₁ == showName c₂
+    clause` (c₁ , c₂) | true = clause ( (a1 $ con c₁ []) ∷ (a1 $ con c₂ []) ∷ (a $ var "_") ∷ [] ) (con (quote refl) [])
+    clause` (c₁ , c₂) | false = absurd-clause ( (a1 $ con c₁ []) ∷ (a1 $ con c₂ []) ∷ (a $ absurd) ∷ [] )
+
+    combs = concatMap (λ l -> map (λ m -> (l , m)) $ cons n) $ cons n
+    proof = pat-lam (map clause` combs) []
+        
+    body = def (quote constr-Injection) $ a (def (quote constr-Π) $ (a $ def n1 []) ∷ a proof ∷ []) ∷ a proof ∷ []
+    
+genInj : (n : Name) -> (n1 : Name) -> {_ : T (supported n)} -> FunctionDef
+genInj n n1 {s} = fun-def infer_type [ clause [] (genInj` n n1 {s}) ]
+    
+{-
 genInj : (n : Name) -> (n1 : Name) -> {_ : T (supported n)} -> FunctionDef
 genInj n n1 = fun-def (t0 fun_type) [ clause [] body ]
   where
@@ -156,14 +180,39 @@ genInj n n1 = fun-def (t0 fun_type) [ clause [] body ]
     proof = pat-lam (map clause` combs) []
         
     body = def (quote constr-Injection) $ a (def (quote constr-Π) $ (a $ def n1 []) ∷ a proof ∷ []) ∷ a proof ∷ []
-
+-}
 -------------------------
 -- Generic from/to example.
+
+record Generic (T : Set) (N : Name) : Set where
+  constructor generic
+  field
+    from : T -> Fin ∘ length ∘ cons $ N
+    to : Fin ∘ length ∘ cons $ N -> T
+    inj : Injection (setoid T) (setoid ∘ Fin ∘ length ∘ cons $ N)
+    dec-eq : Decidable {A = T} _≡_
+
+genBla : (n : Name) -> {_ : T (supported n)} -> FunctionDef
+genBla n {s} = fun-def fun_type []
+  where
+    fun_type = t0 $ def (quote Generic) $ a (var 0 []) ∷ a (def n []) ∷ []
+
 
 data Test : Set where
   One : Test
   Two : Test
   Three : Test
+
+test : Generic Test (quote Test)
+test = generic f t inj dec
+  where
+    f = (unquote (genFrom` (quote Test)))
+    t = (unquote (genTo` (quote Test)))
+    inj = unquote (genInj` (quote Test) (quote f))
+    dec = eq? (unquote (genInj` (quote Test) (quote f)))
+
+--test : {T : Set} -> (N : Name) -> Generic T N
+--test {T} N = generic (unquote (genFrom` N)) (unquote (genTo` N))
 
 unquoteDecl fromTest = genFrom (quote Test)
 unquoteDecl toTest = genTo (quote Test)
@@ -173,6 +222,7 @@ unquoteDecl injTest = genInj (quote Test) (quote fromTest)
 
 eqTest : Decidable {A = Test} _≡_
 eqTest = eq? injTest
+
 
 ----------------
 -- meeting 26/05/15
@@ -229,3 +279,18 @@ eqTest = eq? injTest
 -- 
 -- bewijzen serializeren / terugserializeren
 -- record syntax gebruiken
+
+----------------
+-- meeting 23/06/15
+
+-- dec-eq uit record halen
+-- record
+  -- size / to / from / bijection
+-- vec-rec : G a -> G (Vec a n)
+-- instance arguments
+-- supported : alle constructoren hebben argumenten die G zijn
+-- alleen bool als argument
+
+-- setoid :
+  -- een verz A
+  -- een relatie A -> A -> Set _=_
