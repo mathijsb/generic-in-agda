@@ -74,9 +74,9 @@ instance
     to` = \{ zero → true ; (suc x) → false } ;
     bijection = bool-bijection }
 
-  genFin : Generic (Fin 2)
-  genFin = record {
-    size = 2 ;
+  genFin : ∀ {n} -> Generic (Fin n)
+  genFin {n} = record {
+    size = n ;
     from` = \{ x -> x } ;
     to` = \{ x -> x } ;
     bijection = Function.Bijection.id }
