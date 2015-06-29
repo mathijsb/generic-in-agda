@@ -91,21 +91,25 @@ from : Test -> Fin 4
 from (A x) = inject+ 2 (from` x)
 from (B x) = fromℕ 2 + (from` x)
 
-lemma₂ : {m n : ℕ} -> (x : Fin m) -> (toℕ x) Data.Nat.≤ n -> Fin (Data.Nat.suc n)
+lemma₂ : (m n : ℕ) -> (x : Fin m) -> (toℕ x) Data.Nat.≤ n -> Fin (Data.Nat.suc n)
+lemma₂ m n x p = {!!}
+
+{-
 lemma₂ {n = ℕ.zero} zero p = zero
 lemma₂ {n = ℕ.zero} (suc x) ()
 lemma₂ {n = ℕ.suc n} zero z≤n = zero
 lemma₂ {n = ℕ.suc n} (suc x) (s≤s p) = suc (lemma₂ x p)
+-}
 
 lemma₃ : {m n : ℕ} -> ¬ (m Data.Nat.≤ n) -> (m ≥ (Data.Nat.suc n))
-lemma₃ {ℕ.zero} {ℕ.zero} p = {!!}
+lemma₃ {ℕ.zero} {ℕ.zero} p = contradiction p (λ z → z z≤n)
 lemma₃ {ℕ.suc m} {ℕ.zero} p = s≤s z≤n
-lemma₃ {ℕ.zero} {ℕ.suc n} p = {!!}
+lemma₃ {ℕ.zero} {ℕ.suc n} p = contradiction p (λ z → z z≤n)
 lemma₃ {ℕ.suc m} {ℕ.suc n} p = s≤s (lemma₃ (λ z → p (s≤s z)))
 
 to : Fin 4 -> Test
 to x with (Data.Nat._≤?_ (toℕ x) 1)
-to x | yes p = A (to` (lemma₂ {4} {1} x p)) --  (Data.Fin.# (toℕ x)))
+to x | yes p = A (to` (lemma₂ 4 1 x p)) --  (Data.Fin.# (toℕ x)))
 to x | no ¬p = B (to` (reduce≥ {2} {2} x (lemma₃ ¬p)))
     
 lemma : {x x₁ : Bool} -> from (A x) ≡ from (A x₁) -> x ≡ x₁
@@ -148,7 +152,11 @@ from-surjective = record { from = preserves-eq-inv ; right-inverse-of = inv }
 
     inv : preserves-eq-inv RightInverseOf from-preserves-eq
     inv x with (Data.Nat._≤?_ (toℕ x) 1)
-    inv x | yes p = {!!}
+    inv zero | yes p with (lemma₂ 4 1 (zero {3}) p)
+    ... | p1 = {!!}
+    inv (suc zero) | yes p = {!!}
+    inv (suc (suc zero)) | yes p = {!!}
+    inv (suc (suc (suc x))) | yes p = {!!}
     inv x | no ¬p = {!!}
 {-
     inv zero with (to zero)
