@@ -3,7 +3,7 @@ module Proof where
 open import Agda.Primitive
 open import Reflection
 open import Data.Fin
-open import Data.Fin.Properties using (eq? ; _≟_)
+open import Data.Fin.Properties using (eq? ; _≟_ )
 open import Data.Nat hiding (eq? ;  _+_ ; suc ; zero) 
 open import Data.List
 open import Data.String hiding (setoid)
@@ -63,7 +63,6 @@ bool-inv (suc (suc ()))
 from-bool-surjective : Surjective from-bool-preserves-eq
 from-bool-surjective = record { from = bool-preserves-eq-inv ; right-inverse-of = bool-inv   }
 
-
 bool-bijection : Bijection (setoid Bool) (setoid (Fin 2))
 bool-bijection = record { to = from-bool-preserves-eq ; bijective = record { injective =  from-bool-injective ; surjective = from-bool-surjective } }
 
@@ -92,10 +91,22 @@ from : Test -> Fin 4
 from (A x) = inject+ 2 (from` x)
 from (B x) = fromℕ 2 + (from` x)
 
+lemma₂ : {m n : ℕ} -> (x : Fin m) -> (toℕ x) Data.Nat.≤ n -> Fin (Data.Nat.suc n)
+lemma₂ {n = ℕ.zero} zero p = zero
+lemma₂ {n = ℕ.zero} (suc x) ()
+lemma₂ {n = ℕ.suc n} zero z≤n = zero
+lemma₂ {n = ℕ.suc n} (suc x) (s≤s p) = suc (lemma₂ x p)
+
+lemma₃ : {m n : ℕ} -> ¬ (m Data.Nat.≤ n) -> (m ≥ (Data.Nat.suc n))
+lemma₃ {ℕ.zero} {ℕ.zero} p = {!!}
+lemma₃ {ℕ.suc m} {ℕ.zero} p = s≤s z≤n
+lemma₃ {ℕ.zero} {ℕ.suc n} p = {!!}
+lemma₃ {ℕ.suc m} {ℕ.suc n} p = s≤s (lemma₃ (λ z → p (s≤s z)))
+
 to : Fin 4 -> Test
-to zero = A true
-to (suc zero) = A false
-to (suc (suc x)) = B x
+to x with (Data.Nat._≤?_ (toℕ x) 1)
+to x | yes p = A (to` (lemma₂ {4} {1} x p)) --  (Data.Fin.# (toℕ x)))
+to x | no ¬p = B (to` (reduce≥ {2} {2} x (lemma₃ ¬p)))
     
 lemma : {x x₁ : Bool} -> from (A x) ≡ from (A x₁) -> x ≡ x₁
 lemma {true} {true} p = refl
@@ -130,21 +141,27 @@ from-surjective : Surjective from-preserves-eq
 from-surjective = record { from = preserves-eq-inv ; right-inverse-of = inv }
   where
     cong-inverse : Setoid._≈_ (setoid (Fin 4)) I.=[ to ]⇒ Setoid._≈_ (setoid Test)
-    cong-inverse {zero} refl = refl
-    cong-inverse {suc zero} refl = refl
-    cong-inverse {suc (suc zero)} refl = refl
-    cong-inverse {suc (suc (suc i))} refl = refl
+    cong-inverse refl = refl
     
     preserves-eq-inv : setoid (Fin 4) ⟶ setoid Test
     preserves-eq-inv = record { _⟨$⟩_ = to ; cong = cong-inverse }
 
     inv : preserves-eq-inv RightInverseOf from-preserves-eq
-    inv zero = refl
-    inv (suc zero) = refl
-    inv (suc (suc zero)) = refl
-    inv (suc (suc (suc zero))) = refl
-    inv (suc (suc (suc (suc ()))))
-
+    inv x with (Data.Nat._≤?_ (toℕ x) 1)
+    inv x | yes p = {!!}
+    inv x | no ¬p = {!!}
+{-
+    inv zero with (to zero)
+    ... | t = refl
+    inv (suc zero) with (to zero)
+    ... | t = refl
+    inv (suc (suc zero)) with (to zero)
+    ... | t = refl
+    inv (suc (suc (suc zero))) with (to zero)
+    ... | t = refl
+    inv (suc (suc (suc (suc ())))) 
+-}
+    
 from-injection : Test ↣ Fin 4
 from-injection = record { to = from-preserves-eq ; injective = from-injective }
 
