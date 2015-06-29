@@ -21,21 +21,48 @@ open import Function.Bijection using (Bijection)
 open import Relation.Nullary
 open import Relation.Nullary.Negation
 
+record Generic (T : Set) : Set where
+  constructor generic
+  field
+    size : ℕ
+    from` : T -> Fin size
+    to` : Fin size -> T
+    
+instance
+  genBool : Generic Bool
+  genBool = record {
+    size = 2 ;
+    from` = \{ true → zero ; false → suc zero } ;
+    to` = \{ zero → true ; (suc x) → false } }
+
+  genFin : Generic (Fin 2)
+  genFin = record {
+    size = 2 ;
+    from` = \{ x -> x } ;
+    to` = \{ x -> x } }
+
 data Test : Set where
   A : Bool -> Test
   B : Fin 2 -> Test
 
+open Generic {{...}}
+ 
 from : Test -> Fin 4
-from (A true) = zero
-from (A false) = suc (zero)
-from (B x) = (fromℕ 2) + x
+from (A x) = inject+ 2 (from` x)
+from (B x) = fromℕ 2 + (from` x)
 
 to : Fin 4 -> Test
 to zero = A true
 to (suc zero) = A false
-to (suc (suc zero)) = B zero
-to (suc (suc (suc x))) = B (suc zero)
+to (suc (suc x)) = B x
 
+instance
+  genTest : Generic Test
+  genTest = record {
+    size = 4 ;
+    from` = from ;
+    to` = to }
+    
 lemma : {x x₁ : Bool} -> from (A x) ≡ from (A x₁) -> x ≡ x₁
 lemma {true} {true} p = refl
 lemma {true} {false} ()
