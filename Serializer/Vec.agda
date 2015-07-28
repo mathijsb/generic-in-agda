@@ -18,7 +18,7 @@ import Relation.Binary.Indexed as I
 open import Serializer
 open import Helper.Fin
 
-open Serializer.Serializer
+open Serializer.Serializer {{...}}
 
 -----------------------------------
 -- Generic instance for Vec
