@@ -35,7 +35,7 @@ data Test : Set where
 
 open Serializer.Serializer {{...}}
 
-fromTest : Test -> Fin ((2 + (2 * 2)) + 2)
+fromTest : Test -> Fin 8
 fromTest (A x) = +₁ 6 2 (+₁ 2 4 (from x))
 fromTest (B x x₁) = +₁ 6 2 (+₂ 2 4 (× 2 2 (from x) (from x₁)))
 fromTest (C x) = +₂ 6 2 (from x)
@@ -47,11 +47,11 @@ test .(× 2 2 i j) | is× i j = B (to i) (to j)
 toTest : Fin 8 -> Test
 toTest x = [ (\y -> [ (\z -> A $ to z) , test ] y ) , (\y -> C $ to y) ] x
 
-from-cong : Setoid._≈_ (setoid Test) I.=[ fromTest ]⇒ Setoid._≈_ (setoid (Fin 8))
-from-cong refl = refl
+--from-cong : Setoid._≈_ (setoid Test) I.=[ fromTest ]⇒ Setoid._≈_ (setoid (Fin 8))
+--from-cong refl = refl
 
 from-preserves-eq : setoid Test ⟶ setoid (Fin 8)
-from-preserves-eq = record { _⟨$⟩_ = fromTest ; cong = from-cong }
+from-preserves-eq = record { _⟨$⟩_ = fromTest ; cong = (\{ {i} {.i} refl → refl }) }
 
 from-injective : Injective from-preserves-eq
 from-injective {A x} {A x₁} p with from-bool-injective ∘ +-eq₁ ∘ +-eq₁ $ p
@@ -70,11 +70,11 @@ from-injective {C x} {C .x} refl = refl
 from-surjective : Surjective from-preserves-eq
 from-surjective = record { from = preserves-eq-inv ; right-inverse-of = inv }
   where
-    cong-inverse : Setoid._≈_ (setoid (Fin 8)) I.=[ toTest ]⇒ Setoid._≈_ (setoid Test)
-    cong-inverse refl = refl
+--    cong-inverse : Setoid._≈_ (setoid (Fin 8)) I.=[ toTest ]⇒ Setoid._≈_ (setoid Test)
+--    cong-inverse refl = refl
     
     preserves-eq-inv : setoid (Fin 8) ⟶ setoid Test
-    preserves-eq-inv = record { _⟨$⟩_ = toTest ; cong = cong-inverse }
+    preserves-eq-inv = record { _⟨$⟩_ = toTest ; cong = (\{ {i} {.i} refl → refl }) }
     
     inv : preserves-eq-inv RightInverseOf from-preserves-eq
     inv x with ⨁ 6 2 x
