@@ -45,7 +45,7 @@ test x with ⨂ 2 2 x
 test .(× 2 2 i j) | is× i j = B (to i) (to j)
 
 toTest : Fin 8 -> Test
-toTest x = [ (\y -> [ (\z -> A $ to z) , test ] y ) , (\y -> C $ to y) ] x
+toTest x = [ (\y -> [ (\z -> A $ to z) , test ] (⨁ 2 4 y) ) , (\y -> C $ to y) ] (⨁ 6 2 x)
 
 --from-cong : Setoid._≈_ (setoid Test) I.=[ fromTest ]⇒ Setoid._≈_ (setoid (Fin 8))
 --from-cong refl = refl

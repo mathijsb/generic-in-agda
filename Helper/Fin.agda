@@ -30,10 +30,16 @@ data Fin+ (x y : ℕ) : Fin (x + y) -> Set where
 ⨁ (suc x) y (suc ._) | is+₁ i = is+₁ (suc i)
 ⨁ (suc x) y (suc ._) | is+₂ j = is+₂ j
 
+[_,_] : {X : Set} {x y : ℕ} (l : Fin x -> X) (r : Fin y -> X) -> {s : Fin (x + y)} -> Fin+ x y s -> X
+[_,_] l r {._} (is+₁ i) = l i
+[_,_] l r {._} (is+₂ j) = r j
+
+{-
 [_,_] : {X : Set} {x y : ℕ} (l : Fin x -> X) (r : Fin y -> X) -> (s : Fin (x + y)) -> X
 [_,_] {X} {x} {y} l r s with ⨁ x y s 
 [_,_] l r ._ | is+₁ i = l i
 [_,_] l r ._ | is+₂ j = r j
+-}
 
 × : (x y : ℕ) (i : Fin x) (j : Fin y) -> Fin (x * y)
 × zero _ () _ 
