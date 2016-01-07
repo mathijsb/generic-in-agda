@@ -33,7 +33,7 @@ _∋-t_ ty term = def (quote _∋_) (a ty ∷ a term ∷ [])
 
 cons : (n : Name) -> List Name
 cons n with (definition n)
-cons n | data-type d = constructors d
+cons n | data-type d = reverse (constructors d)
 cons n | _ = []
 
 infer_type = el (lit 0) unknown
